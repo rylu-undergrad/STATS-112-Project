@@ -1,0 +1,496 @@
+---
+title: "Stats 112 Final Project"
+author: "Group 12"
+date: '2023-11-15'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Cannabis Data Project
+
+
+
+```{r EDA}
+library(ggplot2)
+library(tidyverse)
+library(randomForest)
+cannabis <- read.csv("Patient Info Report.csv")
+
+
+ggplot(cannabis, aes(x = GENDER)) +
+  geom_bar(stat = "count", fill = c("grey", "pink" ,"darkslategray1")) +
+  labs(x = "Sex", title = "Sex distribution of Cannabis Patients")
+
+
+ggplot(cannabis, aes(x = AGE) ) + geom_histogram(fill = "goldenrod") + xlim(c(18,100)) +
+  labs(x = "Age", title = "Age Distribution of Cannabis Patients") + geom_vline(aes(xintercept = mean(AGE)),col='darkslategray1',size=1) + geom_vline(aes(xintercept = median(AGE)),col='green',size=1) 
+
+
+ggplot(cannabis, aes(x = WEIGHT) ) + geom_histogram(fill = "goldenrod") + xlim(c(75,300)) +
+  labs(x = "Weight", title = "Weight Distribution of Cannabis Patients") + geom_vline(aes(xintercept = mean(WEIGHT, na.rm = T)),col='darkslategray1',size=1) + geom_vline(aes(xintercept = median(WEIGHT, na.rm = T)),col='green',size=1) 
+
+
+```
+
+
+```{r cleaning products}
+clean_cannabis <- cannabis[, 1:17]
+
+
+
+
+for (i in 1:nrow(clean_cannabis)) {
+  if (grepl("Flower", clean_cannabis$WHAT.PRODUCTS.ARE.YOU.INTERESTED.IN.[i])){
+    clean_cannabis$Flowers[i] <- 1
+  } else {
+    clean_cannabis$Flowers[i] <- 0
+  }
+}
+
+for (i in 1:nrow(clean_cannabis)) {
+  if (grepl("Oils", clean_cannabis$WHAT.PRODUCTS.ARE.YOU.INTERESTED.IN.[i])){
+    clean_cannabis$Oils[i] <- 1
+  } else {
+    clean_cannabis$Oils[i] <- 0
+  }
+}
+
+
+for (i in 1:nrow(clean_cannabis)) {
+  if (grepl("Vaporizer", clean_cannabis$WHAT.PRODUCTS.ARE.YOU.INTERESTED.IN.[i])){
+    clean_cannabis$Vape[i] <- 1
+  } else {
+    clean_cannabis$Vape[i] <- 0
+  }
+}
+
+
+for (i in 1:nrow(clean_cannabis)) {
+  if (grepl("Concentrates", clean_cannabis$WHAT.PRODUCTS.ARE.YOU.INTERESTED.IN.[i])){
+    clean_cannabis$Conc[i] <- 1
+  } else {
+    clean_cannabis$Conc[i] <- 0
+  }
+}
+
+for (i in 1:nrow(clean_cannabis)) {
+  if (grepl("CBD", clean_cannabis$WHAT.PRODUCTS.ARE.YOU.INTERESTED.IN.[i])){
+    clean_cannabis$CBD[i] <- 1
+  } else {
+    clean_cannabis$CBD[i] <- 0
+  }
+}
+
+for (i in 1:nrow(clean_cannabis)) {
+  if (grepl("Edibles", clean_cannabis$WHAT.PRODUCTS.ARE.YOU.INTERESTED.IN.[i])){
+    clean_cannabis$Eds[i] <- 1
+  } else {
+    clean_cannabis$Eds[i] <- 0
+  }
+}
+```
+
+
+
+```{r state cleaning}
+
+for (i in 1:nrow(clean_cannabis)) {
+  if (grepl("(Illinois)|(Indiana)|(Iowa)|(Kansas)|(Michigan)|(Minnesota)|(Missouri)|(Nebraska)|(North Dakota)|(Ohio)|(South Dakota)|(Wisconsin)", clean_cannabis$STATE[i])){
+    clean_cannabis$STATE[i] <- "Midwest"
+  } else {
+  if (grepl("(Maine)|(New Hampshire)|(Vermont)|(Massachusetts)|(Connecticut)|(Rhode Island)|(New York)| (New Jersey)|(Pennsylvania)", clean_cannabis$STATE[i])){
+    clean_cannabis$STATE[i] <- "Northeast"
+  } else {
+    if (grepl("(Arizona)|(Colorado)|(Idaho)|(Montana)|(Nevada)|(New Mexico)|(Utah)|(Wyoming)|(Alaska)|(California)|(Hawaii)|(Oregon)|(Washington)", clean_cannabis$STATE[i])){
+    clean_cannabis$STATE[i] <- "West"
+    } else {
+    
+    clean_cannabis$STATE[i] <- "South"
+  }
+  }
+  }
+}
+
+
+```
+
+
+
+```{r cleaning for emotions}
+
+
+for (i in 1:nrow(clean_cannabis)) {
+  if (grepl("Relief", clean_cannabis$HOW.DO.YOU.WANT.TO.FEEL.[i])){
+    clean_cannabis$Pain[i] <- 1
+  } else {
+    clean_cannabis$Pain[i] <- 0
+  }
+}
+
+for (i in 1:nrow(clean_cannabis)) {
+  if (grepl("Happy", clean_cannabis$HOW.DO.YOU.WANT.TO.FEEL.[i])){
+    clean_cannabis$Happy[i] <- 1
+  } else {
+    clean_cannabis$Happy[i] <- 0
+  }
+}
+
+
+for (i in 1:nrow(clean_cannabis)) {
+  if (grepl("Sleepy", clean_cannabis$HOW.DO.YOU.WANT.TO.FEEL.[i])){
+    clean_cannabis$Sleep[i] <- 1
+  } else {
+    clean_cannabis$Sleep[i] <- 0
+  }
+}
+
+
+for (i in 1:nrow(clean_cannabis)) {
+  if (grepl("Chill", clean_cannabis$HOW.DO.YOU.WANT.TO.FEEL.[i])){
+    clean_cannabis$Chill[i] <- 1
+  } else {
+    clean_cannabis$Chill[i] <- 0
+  }
+}
+
+for (i in 1:nrow(clean_cannabis)) {
+  if (grepl("Relaxed", clean_cannabis$HOW.DO.YOU.WANT.TO.FEEL.[i])){
+    clean_cannabis$Relax[i] <- 1
+  } else {
+    clean_cannabis$Relax[i] <- 0
+  }
+}
+
+for (i in 1:nrow(clean_cannabis)) {
+  if (grepl("Focused", clean_cannabis$HOW.DO.YOU.WANT.TO.FEEL.[i])){
+    clean_cannabis$Focus[i] <- 1
+  } else {
+    clean_cannabis$Focus[i] <- 0
+  }
+}
+
+
+for (i in 1:nrow(clean_cannabis)) {
+  if (grepl("Creative", clean_cannabis$HOW.DO.YOU.WANT.TO.FEEL.[i])){
+    clean_cannabis$Creative[i] <- 1
+  } else {
+    clean_cannabis$Creative[i] <- 0
+  }
+}
+```
+
+
+
+#### Research Question
+##### What products and demogaphics are most influential to deciding how a patient wants to feel?
+##### Entourage effect with certain terpenes that are associated with certain feelings 
+
+
+```{r pain model}
+
+
+pain_glm <- glm(data = clean_cannabis, clean_cannabis$Pain ~ STATE + GENDER + AGE + Flowers + Oils+ Vape + Conc + CBD + Eds)
+
+frontBICpain <- step(pain_glm, direction = "forward", k = log(length(clean_cannabis$Pain)))
+
+backBICpain <- step(pain_glm, direction = "backward", k = log(length(clean_cannabis$Pain)))
+
+summary(backBICpain)
+summary(frontBICpain)
+
+bestpain <- glm(formula = clean_cannabis$Pain ~STATE + AGE + Flowers + Oils + 
+    Conc + CBD + Eds, data = clean_cannabis)
+
+pred.probm <- predict(bestpain,type="response")
+
+BN.glm.pred = rep(1,9192)
+BN.glm.pred[pred.probm<0.5] = 0
+mean(BN.glm.pred != factor(clean_cannabis$Pain))
+table(BN.glm.pred, factor(clean_cannabis$Pain))
+```
+
+
+```{r happy}
+happy_glm <- glm(data = clean_cannabis, clean_cannabis$Happy ~ STATE + GENDER + AGE + Flowers + Oils+ Vape + Conc + CBD + Eds)
+
+frontBIChappy <- step(happy_glm, direction = "forward", k = log(length(clean_cannabis$Happy)))
+
+backBIChappy <- step(happy_glm, direction = "backward", k = log(length(clean_cannabis$Happy)))
+
+summary(backBIChappy)
+summary(frontBIChappy)
+
+besthappy <- glm(formula = clean_cannabis$Happy ~STATE + AGE + Flowers + 
+    Oils + Vape + Conc + Eds, data = clean_cannabis)
+
+pred.probm <- predict(besthappy,type="response")
+
+BN.glm.pred = rep(1,9192)
+BN.glm.pred[pred.probm<0.5] = 0
+mean(BN.glm.pred != factor(clean_cannabis$Happy))
+table(BN.glm.pred, factor(clean_cannabis$Happy))
+```
+
+
+
+```{r sleep}
+sleep_glm <- glm(data = clean_cannabis, clean_cannabis$Sleep ~ STATE + GENDER + AGE + Flowers + Oils+ Vape + Conc + CBD + Eds)
+
+frontBICsleep <- step(sleep_glm, direction = "forward", k = log(length(clean_cannabis$Sleep)))
+
+backBICsleep <- step(sleep_glm, direction = "backward", k = log(length(clean_cannabis$Sleep)))
+
+summary(backBICsleep)
+
+bestsleep <- glm(formula = clean_cannabis$Sleep ~Vape + Conc + Eds, data = clean_cannabis)
+
+pred.probm <- predict(bestsleep,type="response")
+
+BN.glm.pred = rep(1,9192)
+BN.glm.pred[pred.probm<0.5] = 0
+mean(BN.glm.pred != factor(clean_cannabis$Sleep))
+table(BN.glm.pred, factor(clean_cannabis$Sleep))
+```
+
+
+
+
+```{r chill}
+chill_glm <- glm(data = clean_cannabis, clean_cannabis$Chill ~ STATE + GENDER + AGE + Flowers + Oils+ Vape + Conc + CBD + Eds)
+
+frontBICchill <- step(chill_glm, direction = "forward", k = log(length(clean_cannabis$Chill)))
+
+backBICchill <- step(chill_glm, direction = "backward", k = log(length(clean_cannabis$Chill)))
+
+summary(backBICchill)
+summary(frontBICchill)
+
+bestchill <- glm(formula = clean_cannabis$Chill ~AGE + Flowers + 
+    Oils + Vape + Conc + Eds, data = clean_cannabis)
+
+pred.probm <- predict(bestchill,type="response")
+
+BN.glm.pred = rep(1,9192)
+BN.glm.pred[pred.probm<0.5] = 0
+mean(BN.glm.pred != factor(clean_cannabis$Chill))
+table(BN.glm.pred, factor(clean_cannabis$Chill))
+```
+
+
+
+
+```{r relax}
+relax_glm <- glm(data = clean_cannabis, clean_cannabis$Relax ~ STATE + GENDER + AGE + Flowers + Oils+ Vape + Conc + CBD + Eds)
+
+frontBICrelax <- step(relax_glm, direction = "forward", k = log(length(clean_cannabis$Relax)))
+
+backBICrelax <- step(relax_glm, direction = "backward", k = log(length(clean_cannabis$Relax)))
+
+summary(backBICrelax)
+summary(frontBICrelax)
+
+
+bestrelax <- glm(formula = clean_cannabis$Relax ~ STATE + AGE + Flowers + 
+    Vape + Conc + Eds, data = clean_cannabis)
+
+pred.probm <- predict(bestrelax,type="response")
+
+BN.glm.pred = rep(1,9192)
+BN.glm.pred[pred.probm<0.5] = 0
+mean(BN.glm.pred != factor(clean_cannabis$Relax))
+table(BN.glm.pred, factor(clean_cannabis$Relax))
+```
+
+
+
+
+
+
+```{r focus}
+focus_glm <- glm(data = clean_cannabis, clean_cannabis$Chill ~ STATE + GENDER + AGE + Flowers + Oils+ Vape + Conc + CBD + Eds)
+
+frontBICfocus <- step(focus_glm, direction = "forward", k = log(length(clean_cannabis$Focus)))
+
+backBICfocus <- step(focus_glm, direction = "backward", k = log(length(clean_cannabis$Focus)))
+
+summary(backBICfocus)
+summary(frontBICfocus)
+
+
+bestfocus <- glm(formula = clean_cannabis$Focus ~ AGE + Flowers + 
+    Oils + Vape + Conc + Eds, data = clean_cannabis)
+
+pred.probm <- predict(bestfocus,type="response")
+
+BN.glm.pred = rep(1,9192)
+BN.glm.pred[pred.probm<0.5] = 0
+mean(BN.glm.pred != factor(clean_cannabis$Focus))
+table(BN.glm.pred, factor(clean_cannabis$Focus))
+```
+
+
+
+```{r creative}
+creative_glm <- glm(data = clean_cannabis, clean_cannabis$Creative ~ STATE + GENDER + AGE + Flowers + Oils+ Vape + Conc + CBD + Eds)
+
+frontBICcreative <- step(creative_glm, direction = "forward", k = log(length(clean_cannabis$Creative)))
+
+backBICcreative <- step(creative_glm, direction = "backward", k = log(length(clean_cannabis$Creative)))
+
+summary(backBICcreative)
+summary(frontBICcreative)
+
+bestcreative <- glm(formula = clean_cannabis$Creative ~ STATE + Flowers + Oils + 
+    Vape + Conc + CBD + Eds, data = clean_cannabis)
+
+pred.probm <- predict(bestcreative,type="response")
+
+BN.glm.pred = rep(1,9192)
+BN.glm.pred[pred.probm<0.5] = 0
+mean(BN.glm.pred != factor(clean_cannabis$Creative))
+table(BN.glm.pred, factor(clean_cannabis$Creative))
+```
+
+
+```{r tree models Creative}
+set.seed(123)
+
+clean_cannabis$STATE = as.factor(clean_cannabis$STATE)
+levels(clean_cannabis$STATE)
+
+state_dummies <- model.matrix(~ STATE - 1, data = clean_cannabis)
+clean_cannabis_encoded <- cbind(clean_cannabis[, !(names(clean_cannabis) %in% "STATE")], state_dummies)
+str(clean_cannabis_encoded)
+
+forestfit.RF <- randomForest(as.factor(Creative)~STATEMidwest + STATENortheast + STATESouth + STATEWest + Flowers + Oils + Vape + Conc + CBD + Eds + AGE,data = clean_cannabis_encoded, mtry = 3,ntree = 300, importance = TRUE)
+prediction <- predict(forestfit.RF)
+table(prediction, clean_cannabis$Creative)
+mean(prediction != clean_cannabis$Creative)
+varImpPlot(forestfit.RF, type = 2)
+varImpPlot(forestfit.RF, type = 1)
+varImpPlot(forestfit.RF, scale = F)
+
+# Extract importance
+importance_scores <- importance(forestfit.RF, type = 1) # type=1 for Mean Decrease Accuracy
+importance_scores
+total_importance_state <- sum(importance_scores[grep("STATE", rownames(importance_scores)), ])
+
+# Individual importance of each level
+importance_midwest <- importance_scores["STATEMidwest", ]
+importance_northeast <- importance_scores["STATENortheast", ]
+importance_south <- importance_scores["STATESouth", ]
+importance_west <- importance_scores["STATEWest", ]
+```
+
+
+```{r tree models Pain}
+set.seed(123)
+
+
+forestfit.RF <- randomForest(as.factor(Pain) ~ STATEMidwest + STATENortheast + STATESouth + STATEWest + Flowers + Oils + Vape + Conc + CBD + Eds + AGE,data = clean_cannabis_encoded, mtry = 3,ntree = 300, importance = TRUE)
+prediction <- predict(forestfit.RF)
+table(prediction, clean_cannabis$Creative)
+mean(prediction != clean_cannabis$Creative)
+varImpPlot(forestfit.RF, type = 2)
+varImpPlot(forestfit.RF, type = 1)
+varImpPlot(forestfit.RF, scale = F)
+
+# Extract importance
+importance_scores <- importance(forestfit.RF, type = 1) # type=1 for Mean Decrease Accuracy
+importance_scores
+```
+
+
+
+```{r tree models Happy}
+set.seed(123)
+
+
+forestfit.RF <- randomForest(as.factor(Happy) ~ STATEMidwest + STATENortheast + STATESouth + STATEWest + Flowers + Oils + Vape + Conc + CBD + Eds + AGE,data = clean_cannabis_encoded, mtry = 3,ntree = 300, importance = TRUE)
+prediction <- predict(forestfit.RF)
+table(prediction, clean_cannabis$Creative)
+mean(prediction != clean_cannabis$Creative)
+varImpPlot(forestfit.RF, type = 2)
+varImpPlot(forestfit.RF, type = 1)
+varImpPlot(forestfit.RF, scale = F)
+
+# Extract importance
+importance_scores <- importance(forestfit.RF, type = 1) # type=1 for Mean Decrease Accuracy
+importance_scores
+```
+
+
+```{r tree models Sleep}
+set.seed(123)
+
+
+forestfit.RF <- randomForest(as.factor(Sleep) ~ STATEMidwest + STATENortheast + STATESouth + STATEWest + Flowers + Oils + Vape + Conc + CBD + Eds + AGE,data = clean_cannabis_encoded, mtry = 3,ntree = 300, importance = TRUE)
+prediction <- predict(forestfit.RF)
+table(prediction, clean_cannabis$Creative)
+mean(prediction != clean_cannabis$Creative)
+varImpPlot(forestfit.RF, type = 2)
+varImpPlot(forestfit.RF, type = 1)
+varImpPlot(forestfit.RF, scale = F)
+
+# Extract importance
+importance_scores <- importance(forestfit.RF, type = 1) # type=1 for Mean Decrease Accuracy
+importance_scores
+```
+
+
+
+```{r tree models focus}
+set.seed(123)
+
+
+forestfit.RF <- randomForest(as.factor(Focus) ~ STATEMidwest + STATENortheast + STATESouth + STATEWest + Flowers + Oils + Vape + Conc + CBD + Eds + AGE,data = clean_cannabis_encoded, mtry = 3,ntree = 300, importance = TRUE)
+prediction <- predict(forestfit.RF)
+table(prediction, clean_cannabis$Creative)
+mean(prediction != clean_cannabis$Creative)
+varImpPlot(forestfit.RF, type = 2)
+varImpPlot(forestfit.RF, type = 1)
+varImpPlot(forestfit.RF, scale = F)
+
+# Extract importance
+importance_scores <- importance(forestfit.RF, type = 1) # type=1 for Mean Decrease Accuracy
+importance_scores
+```
+
+
+```{r tree models relax}
+set.seed(123)
+
+forestfit.RF <- randomForest(as.factor(Relax) ~ STATEMidwest + STATENortheast + STATESouth + STATEWest + Flowers + Oils + Vape + Conc + CBD + Eds + AGE,data = clean_cannabis_encoded, mtry = 3,ntree = 300, importance = TRUE)
+prediction <- predict(forestfit.RF)
+table(prediction, clean_cannabis$Creative)
+mean(prediction != clean_cannabis$Creative)
+varImpPlot(forestfit.RF, type = 2)
+varImpPlot(forestfit.RF, type = 1)
+varImpPlot(forestfit.RF, scale = F)
+
+# Extract importance
+importance_scores <- importance(forestfit.RF, type = 1) # type=1 for Mean Decrease Accuracy
+importance_scores
+```
+
+
+
+
+```{r tree models chill}
+set.seed(123)
+
+forestfit.RF <- randomForest(as.factor(Chill) ~ STATEMidwest + STATENortheast + STATESouth + STATEWest + Flowers + Oils + Vape + Conc + CBD + Eds + AGE,data = clean_cannabis_encoded, mtry = 3,ntree = 300, importance = TRUE)
+prediction <- predict(forestfit.RF)
+table(prediction, clean_cannabis$Chill)
+mean(prediction != clean_cannabis$Chill)
+varImpPlot(forestfit.RF, type = 2)
+varImpPlot(forestfit.RF, type = 1)
+varImpPlot(forestfit.RF, scale = F)
+
+# Extract importance
+importance_scores <- importance(forestfit.RF, type = 1) # type=1 for Mean Decrease Accuracy
+importance_scores
+```
